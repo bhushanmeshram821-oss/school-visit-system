@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>शाळा भेट नोंदणी प्रणाली - CRC पिंपळगाव/स.</title>
+    
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- SheetJS Library (फॉरमॅट एरर दूर करण्यासाठी व अस्सल .xlsx साठी) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background-color: #f4f7f6; 
+            margin: 0;
+            padding: 15px;
+            position: relative;
+        }
+
+        body::before {
+            content: "CRC PIMPALGAON/S";
+            position: fixed;
+            top: 50%; 
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 60px;
+            color: rgba(41, 128, 185, 0.06);
+            z-index: -1;
+            white-space: nowrap;
+            pointer-events: none;
+            font-weight: bold;
+        }
+
+        .top-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2c3e50;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .scrolling-marquee {
+            flex-grow: 1;
+            margin-right: 20px;
+            color: #f1c40f;
+            font-weight: bold;
+            font-size: 15px;
+            letter-spacing: 1px;
+        }
+
+        .profile-info {
+            text-align: right;
+            font-size: 11px;
+            line-height: 1.3;
+            color: #ecf0f1;
+            white-space: nowrap;
+        }
+
+        .profile-info span {
+            font-weight: bold;
+            color: #2ecc71;
+        }
+
+        #welcomeScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1b4f72, #2980b9, #27ae60);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
+
+        .ppt-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 20px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 650px;
+            width: 90%;
+            border: 5px solid #f1c40f;
+            animation: popIn 1s ease;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .ppt-title {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, #2980b9, #27ae60);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ppt-subtitle {
+            font-size: 18px;
+            color: #d35400;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .ppt-district {
+            font-size: 16px;
+            color: #16a085;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+
+        .ppt-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 14px 35px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .container { 
+            max-width: 950px; 
+            background: #ffffff; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15); 
+            margin: auto; 
+            border: 3px solid #2980b9; 
+            box-sizing: border-box;
+        }
+
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+
+        .page-nav-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 2px solid #d5dbdb;
+        }
+
+        .page-nav-bar button {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            background-color: #34495e;
+        }
+
+        .page-title { 
+            text-align: center; 
+            color: #2980b9; 
+            margin-bottom: 20px; 
+            border-bottom: 2px dashed #a9cce3; 
+            padding-bottom: 10px; 
+            font-size: 20px;
+        }
+
+        .info-header { 
+            background: #e8f8f5; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            font-weight: bold; 
+            color: #117a65; 
+            text-align: center; 
+            line-height: 1.6; 
+            border: 2px solid #27ae60; 
+            font-size: 13px;
+        }
+
+        .info-header span { color: #c0392b; font-size: 15px; }
+
+        .stats-row { display: flex; justify-content: center; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
+        .small-circle { 
+            width: 85px; 
+            height: 85px; 
+            border-radius: 50%; 
+            background: linear-gradient(135deg, #27ae60, #2980b9); 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+            border: 3px solid #fff; 
+        }
+        .small-circle .sc-num { font-size: 20px; font-weight: bold; }
+        .small-circle .sc-text { font-size: 10px; text-align: center; padding: 0 4px; line-height: 1.2; }
+
+        .school-circles-container { background: #f9fbe7; border: 2px dashed #9ccc65; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .school-circles-container h4 { margin: 0 0 10px 0; color: #558b2f; text-align: center; font-size: 14px; }
+        .school-badge-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .school-mini-badge { display: flex; align-items: center; background: white; border: 1px solid #c5e1a5; border-radius: 20px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+        .school-mini-badge span.badge-circle { background: #2e7d32; color: white; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-left: 6px; font-size: 11px; }
+
+        .school-history-box { background: #fffde7; border: 2px solid #fbc02d; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; }
+        .school-history-box h5 { margin: 0 0 8px 0; color: #f57f17; font-size: 15px; border-bottom: 1px dashed #f9a825; padding-bottom: 5px; }
+        .school-history-box ul { margin: 0; padding-left: 20px; font-size: 13px; color: #37474f; }
+        .school-history-box li { margin-bottom: 4px; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 14px; color: #1b4f72; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #a9cce3; border-radius: 6px; box-sizing: border-box; font-size: 14px; background-color: #fbfcfc; }
+        input:focus, select:focus, textarea:focus { border: 2px solid #2980b9; outline: none; background-color: #fff; }
+        .auto-filled { background-color: #ebf5fb; border: 1px solid #5499c7; font-weight: bold; color: #154360; }
+
+        .sub-option-box {
+            background-color: #eaf2f8;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #2980b9;
+            margin-top: 8px;
+        }
+
+        .button-area { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; justify-content: center; }
+        .button-area button { border: none; color: white; padding: 12px 18px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        
+        .btn-add { background: #27ae60; }
+        .btn-tour { background: #8e44ad; }
+        .btn-actual { background: #d35400; }
+        .btn-excel { background: #2980b9; }
+        .btn-word { background: #2e86c1; }
+        .btn-print { background: #d68910; }
+        .btn-clear { background: #c0392b; }
+        .btn-pdf { background: #e74c3c; }
+
+        .action-btn { padding: 6px 10px; margin: 2px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; color: white; display: inline-block; }
+        .edit-btn { background-color: #f39c12; }
+        .delete-btn { background-color: #c0392b; }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 15px;
+        }
+
+        table { width: 100%; border-collapse: collapse; min-width: 650px; border-radius: 8px; overflow: hidden; }
+        th, td { border: 1px solid #a9cce3; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #2980b9; color: #ffffff; text-align: center; }
+        table tbody tr:nth-child(odd) { background-color: #ebf5fb; color: #154360; }
+        table tbody tr:nth-child(even) { background-color: #e8f8f5; color: #0e6251; }
+        
+        .chart-container { width: 100%; max-width: 400px; margin: 20px auto; text-align: center; background: #ffffff; padding: 15px; border-radius: 10px; border: 1px solid #d5dbdb; box-sizing: border-box;}
+
+        .summary-section { padding: 10px; background: #fdfefe; border-radius: 10px; }
+        .summary-controls { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; }
+        .summary-controls select { width: 130px; }
+        .summary-box { display: none; background: #ffffff; border: 2px solid #27ae60; padding: 15px; border-radius: 8px; font-size: 13px; color: #0e6251; }
+        .summary-box ul { padding-left: 20px; margin-top: 10px; }
+        .summary-box li { margin-bottom: 5px; font-weight: 500; }
+        .summary-action-btns { display: none; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center; }
+        .summary-action-btns button { border: none; color: white; padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+
+        .summary-header {
+            text-align: center;
+            border-bottom: 2px dashed #27ae60;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+        .summary-header h3 { margin: 0 0 5px 0; color: #1b4f72; font-size: 18px; }
+        .summary-header h4 { margin: 0 0 5px 0; color: #8e44ad; font-size: 15px; }
+        .summary-header p { margin: 3px 0; font-size: 12px; color: #2c3e50; }
+        
+        .summary-sign-box {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 15px;
+            font-size: 12px;
+        }
+
+        .status-badge {
+            padding: 3px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            display: inline-block;
+            text-align: center;
+        }
+        .status-completed { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-tentative { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        @media print {
+            .no-print, .top-header-bar, .page-nav-bar, .button-area, .summary-controls, #welcomeScreen, .chart-container { display: none !important; }
+            body { padding: 0; background: #fff; font-size: 11pt; }
+            body::before { display: none !important; }
+            .container { border: none; box-shadow: none; max-width: 100%; padding: 0; margin: 0; }
+            .page-section { display: none !important; }
+            .page-section.active { display: block !important; }
+            .summary-box { border: none; padding: 0; display: block !important; }
+            .table-responsive { overflow: visible !important; }
+            table { width: 100% !important; min-width: 100% !important; border-collapse: collapse; page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            th, td { border: 1px solid #000 !important; color: #000 !important; background: transparent !important; }
+            th { font-weight: bold; background-color: #f2f2f2 !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- वेल्कम स्क्रीन -->
+    <div id="welcomeScreen">
+        <div class="ppt-card">
+            <div class="ppt-title">🏫 शाळा भेट नोंदणी प्रणाली 🏫</div>
+            <div class="ppt-subtitle">समूह साधन केंद्र पिंपळगाव/स. (CRC Pimpalgaon/S)</div>
+            <div class="ppt-district">पंचायत समिती: लाखनी (P. S. Lakhani)<br>जिल्हा: भंडारा (District Bhandara)</div>
+            <button class="ppt-btn" onclick="enterSystem()">🚀 प्रणाली सुरू करा (Start)</button>
+        </div>
+    </div>
+
+<div class="container">
+    
+    <!-- शीर्ष माहिती पट्टी -->
+    <div class="top-header-bar">
+        <div class="scrolling-marquee">
+            <marquee behavior="scroll" direction="left" scrollamount="5">🌟 School Visit Diary 🌟 शाळा भेट नोंदणी प्रणाली - समूह साधन केंद्र पिंपळगाव/स. 🌟</marquee>
+        </div>
+        <div class="profile-info">
+            <span>भूषणकुमार बा. मेश्राम</span><br>
+            केंद्र समन्वयक<br>
+            समूह साधन केंद्र पिंपळगाव/स.
+        </div>
+    </div>
+
+    <div id="mainSystem">
+        
+        <!-- PAGE 1: शाळा भेट नोंदणी फॉर्म -->
+        <div id="page1" class="page-section active">
+            <h2 class="page-title">🏫 पेज १: शाळा भेट नोंदणी फॉर्म 🏫</h2>
+            <div class="info-header">
+                जिल्हा: भंडारा | पंचायत समिती: लाखनी | समूह साधन केंद्र: पिंपळगाव/स.<br>
+                <span>केंद्र समन्वयक: भूषणकुमार बालकदास मेश्राम</span>
+            </div>
+            
+            <div class="stats-row">
+                <div class="small-circle">
+                    <span class="sc-num" id="prevMonthCount">0</span>
+                    <span class="sc-text">मागील महिना</span>
+                </div>
+                <div class="small-circle">
+                    <span class="sc-num" id="currMonthCount">0</span>
+                    <span class="sc-text">चालू महिना</span>
+                </div>
+                <div class="small-circle">
+                    <span class="sc-num" id="currentOngoingCount">0</span>
+                    <span class="sc-text">सध्याची भेट</span>
+                </div>
+            </div>
+
+            <form id="visitForm">
+                <div class="form-group">
+                    <label for="schoolName">🏫 शाळेचे नाव / ठिकाण :</label>
+                    <select id="schoolName" required onchange="onSchoolChange()">
+                        <option value="">-- शाळा निवडा --</option>
+                        <option value="जिल्हा परिषद केंद्रीय प्राथमिक शाळा पिंपळगाव">१. जिल्हा परिषद केंद्रीय प्राथमिक शाळा पिंपळगाव</option>
+                        <option value="जिल्हा परिषद हायस्कूल पिंपळगाव">२. जिल्हा परिषद हायस्कूल पिंपळगाव</option>
+                        <option value="जिल्हा परिषद शिवाजी प्राथमिक शाळा पिंपळगाव">३. जिल्हा परिषद शिवाजी प्राथमिक शाळा पिंपळगाव</option>
+                        <option value="स्नेहा कन्या विद्यालय पिंपळगाव">४. स्नेहा कन्या विद्यालय पिंपळगाव</option>
+                        <option value="स्कायवर्ड इंटरनॅशनल स्कूल पिंपळगाव">५. स्कायवर्ड इंटरनॅशनल स्कूल पिंपळगाव</option>
+                        <option value="जिल्हा परिषद उच्च प्राथमिक शाळा रेंगेपार/को.">६. जिल्हा परिषद उच्च प्राथमिक शाळा रेंगेपार/को.</option>
+                        <option value="जिल्हा परिषद प्राथमिक शाळा सामेवाडा">७. जिल्हा परिषद प्राथमिक शाळा सामेवाडा</option>
+                        <option value="जिल्हा परिषद प्राथमिक शाळा खैरी">८. जिल्हा परिषद प्राथमिक शाळा खैरी</option>
+                        <option value="जिल्हा परिषद उच्च प्राथमिक शाळा मिरेगाव">९. जिल्हा परिषद उच्च प्राथमिक शाळा मिरेगाव</option>
+                        <option value="शुक्राचार्य विद्यालय मिरेगाव">१०. शुक्राचार्य विद्यालय मिरेगाव</option>
+                        <option value="इतर भेटी/कार्य">११. इतर भेटी/कार्य ⬇️</option>
+                    </select>
+
+                    <div id="otherWorkContainer" class="sub-option-box" style="display: none;">
+                        <label for="otherWorkName">📌 इतर भेटीचे / कार्याचे स्वरूप निवडा :</label>
+                        <select id="otherWorkName" onchange="onOtherWorkChange()">
+                            <option value="">-- कार्य / भेट निवडा --</option>
+                            <option value="समूह साधन केंद्र (CRC)">समूह साधन केंद्र (CRC)</option>
+                            <option value="गट साधन केंद्र लाखनी (BRC)">गट साधन केंद्र लाखनी (BRC)</option>
+                            <option value="पंचायत समिती लाखनी">पंचायत समिती लाखनी</option>
+                            <option value="जिल्हा परिषद भंडारा (ZP)">जिल्हा परिषद भंडारा (ZP)</option>
+                            <option value="केंद्रस्तरीय शिक्षण परिषद">केंद्रस्तरीय शिक्षण परिषद</option>
+                            <option value="प्रशिक्षण / Training">प्रशिक्षण / Training</option>
+                            <option value="ONLINE MEETING">ONLINE MEETING</option>
+                            <option value="मुख्याध्यापक सभा">मुख्याध्यापक सभा</option>
+                            <option value="डाक देणे/बनविणे">डाक देणे/बनविणे</option>
+                            <option value="इतर शालेय कार्य">इतर शालेय कार्य</option>
+                            <option value="इतर शासकीय कार्य">इतर शासकीय कार्य</option>
+                            <option value="Sunday/रविवार">Sunday/रविवार</option>
+                            <option value="रजा/leave">रजा/leave</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="visitDate">📅 भेटीचा दिनांक:</label>
+                    <input type="date" id="visitDate" required onchange="updateCounters()">
+                </div>
+
+                <div class="form-group">
+                    <label for="travelDistance">🛣️ प्रवासाचे अंतर (येणे-जाणे कि.मी.):</label>
+                    <input type="number" id="travelDistance" class="auto-filled" placeholder="आपोआप येईल..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="prevVisits">🔢 यापूर्वी झालेल्या एकूण भेटी (संख्या):</label>
+                    <input type="number" id="prevVisits" class="auto-filled" placeholder="आपोआप येईल..." required readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="currentVisit">🎯 सध्या शाळा भेटीची कितवी वेळ:</label>
+                    <input type="number" id="currentVisit" class="auto-filled" placeholder="आपोआप येईल..." required readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="visitType">📝 भेट मुख्य शिर्षक 📝 :</label>
+                    <select id="visitType" required>
+                        <option value="">-- भेटीचे स्वरूप निवडा --</option>
+                        <option value="आकस्मिक भेट / धावती भेट">आकस्मिक भेट / धावती भेट</option>
+                        <option value="शैक्षणिक शाळा भेट प्रपत्र">शैक्षणिक शाळा भेट प्रपत्र</option>
+                        <option value="शालेय पोषण आहार MDM प्रपत्र">शालेय पोषण आहार MDM प्रपत्र</option>
+                        <option value="समूह साधन केंद्र (CRC)">समूह साधन केंद्र (CRC)</option>
+                        <option value="गट साधन केंद्र लाखनी (BRC)">गट साधन केंद्र लाखनी (BRC)</option>
+                        <option value="मासिक सभा (BRC)">मासिक सभा (BRC)</option>
+                        <option value="मुख्याध्यापक सभा">मुख्याध्यापक सभा</option>
+                        <option value="शैक्षणिक गुणवत्ता निरीक्षण">शैक्षणिक गुणवत्ता निरीक्षण</option>
+                        <option value="प्रशिक्षण /TRAINING">प्रशिक्षण /TRAINING</option>
+                        <option value="ONLINE MEETING">ONLINE MEETING</option>
+                        <option value="डाक बनविणे/देणे">डाक बनविणे/देणे</option>
+                        <option value="शिक्षण परिषद">शिक्षण परिषद</option>
+                        <option value="इतर शाळा भेट">इतर शाळा भेट</option>
+                        <option value="जिल्हा परिषद भंडारा (ZP)">जिल्हा परिषद भंडारा (ZP)</option>
+                        <option value="शाळा व्यवस्थापन समिती (SMC) बैठक">शाळा व्यवस्थापन समिती (SMC) बैठक</option>
+                        <option value="शालेय अभिलेख व नोंदवही तपासणी">शालेय अभिलेख व नोंदवही तपासणी</option>
+                        <option value="भौतिक सुविधा व स्वच्छता पाहणी">भौतिक सुविधा व स्वच्छता पाहणी</option>
+                        <option value="संगणक व डिजिटल वर्ग तपासणी">संगणक व डिजिटल वर्ग तपासणी</option>
+                        <option value="स्वाध्याय व मूल्यमापन नोंद निरीक्षण">स्वाध्याय व मूल्यमापन नोंद निरीक्षण</option>
+                        <option value="शिक्षक मार्गदर्शन व सभा">शिक्षक मार्गदर्शन व सभा</option>
+                        <option value="विशेष गरजा असणाऱ्या विद्यार्थ्यांचा आढावा">विशेष गरजा असणाऱ्या विद्यार्थ्यांचा आढावा</option>
+                        <option value="वार्षिक नियोजन व इतर उपक्रम आढावा">वार्षिक नियोजन व इतर उपक्रम आढावा</option>
+                        <option value="कार्यालयीन कार्य">कार्यालयीन कार्य</option>
+                        <option value="इतर शालेय कार्य/भेट">इतर शालेय कार्य/भेट</option>
+                        <option value="सांस्कृतिक कार्य">सांस्कृतिक कार्य</option>
+                        <option value="Sunday/रविवार">Sunday/रविवार</option>
+                        <option value="मा.अधिकारी वर्ग आढावा सभा">मा.अधिकारी वर्ग आढावा सभा</option>
+                        <option value="किरकोळ रजा/leave">किरकोळ रजा/leave</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="visitDetails">✍️ भेटीचे तपशील / विवरण (नोंद):</label>
+                    <textarea id="visitDetails" rows="2" placeholder="भेटीविषयी थोडक्यात माहिती किंवा विशेष नोंद लिहा..."></textarea>
+                </div>
+
+                <div class="button-area">
+                    <button type="button" id="mainSubmitBtn" class="btn-add" onclick="saveOrUpdateVisit()">➕ माहिती जोडा (Add)</button>
+                    <button type="button" class="btn-clear" onclick="clearData()">🗑️ सर्व माहिती पुसा</button>
+                </div>
+            </form>
+            
+            <div class="page-nav-bar">
+                <span></span>
+                <button onclick="changePage(2)">पुढील पेज ➡️</button>
+            </div>
+        </div>
+
+        <!-- PAGE 2: शाळानुसार एकूण भेटसंख्या आढावा -->
+        <div id="page2" class="page-section">
+            <h2 class="page-title">📊 पेज २: शाळानुसार एकूण भेटसंख्या आढावा</h2>
+            <div class="school-circles-container">
+                <h4>🏫 शाळांनुसार व कार्यांनुसार एकूण भेटसंख्या आढावा (इतिहास पाहण्यासाठी नावावर क्लिक करा)</h4>
+                <div class="school-badge-grid" id="schoolBadgeGrid"></div>
+                <div id="schoolHistoryBox" class="school-history-box">
+                    <h5 id="historyTitle">शाळेचे नाव - मागील भेटी</h5>
+                    <ul id="historyList"></ul>
+                </div>
+            </div>
+            
+            <div class="page-nav-bar">
+                <button onclick="changePage(1)">⬅️ मागील पेज</button>
+                <button onclick="changePage(3)">पुढील पेज ➡️</button>
+            </div>
+        </div>
+
+        <!-- PAGE 3: भेटीचे स्वरूप (Pie Chart) व शाळा भेट नोंदवही -->
+        <div id="page3" class="page-section">
+            <h2 class="page-title">📈 पेज ३: भेटीचे स्वरूप व शाळा भेट नोंदवही</h2>
+            
+            <div class="chart-container">
+                <h3 style="color: #2980b9; margin-bottom: 10px; font-size: 16px;">📊 भेटीचे स्वरूप (Pie Chart)</h3>
+                <canvas id="visitPieChart"></canvas>
+            </div>
+
+            <div style="margin-top: 20px;" id="printArea">
+                <h3 style="text-align: center; color: #2980b9;">शाळा भेटीची नोंदवही</h3>
+                <div style="margin-bottom: 10px; text-align: center;" class="no-print">
+                    <button type="button" class="btn-pdf" onclick="downloadPage3PDF()">📄 PDF डाउनलोड</button>
+                    <button type="button" class="btn-excel" onclick="downloadExcel()">📊 Excel डाउनलोड</button>
+                    <button type="button" class="btn-word" onclick="downloadWord()">📘 Word डाउनलोड</button>
+                    <button type="button" class="btn-print" onclick="printTable()">🖨️ प्रिंट करा</button>
+                </div>
+                <div class="table-responsive">
+                    <table id="visitTable">
+                        <thead>
+                            <tr>
+                                <th>दिनांक</th>
+                                <th>शाळेचे नाव / ठिकाण</th>
+                                <th>अंतर (किमी)</th>
+                                <th>पूर्वीच्या भेटी</th>
+                                <th>कितवी भेट</th>
+                                <th>भेटीचे स्वरूप</th>
+                                <th>विवरण / नोंद</th>
+                                <th>स्थिती</th>
+                                <th class="no-print" style="width: 100px;">कृती</th> 
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="page-nav-bar">
+                <button onclick="changePage(2)">⬅️ मागील पेज</button>
+                <button onclick="changePage(4)">पुढील पेज ➡️</button>
+            </div>
+        </div>
+
+        <!-- PAGE 4: महिना व वर्षनिहाय गोषवारा, संभाव्य दौरा दैनंदिनी व प्रत्यक्ष झालेल्या भेटी -->
+        <div id="page4" class="page-section">
+            <h2 class="page-title">📅 पेज ४: गोषवारा, संभाव्य दौरा दैनंदिनी व प्रत्यक्ष भेटी</h2>
+            <div class="summary-section">
+                <div class="summary-controls">
+                    <div>
+                        <label for="summaryYear">वर्ष निवडा:</label>
+                        <select id="summaryYear"></select>
+                    </div>
+                    <div>
+                        <label for="summaryMonth">महिना निवडा:</label>
+                        <select id="summaryMonth">
+                            <option value="01">जानेवारी</option>
+                            <option value="02">फेब्रुवारी</option>
+                            <option value="03">मार्च</option>
+                            <option value="04">एप्रिल</option>
+                            <option value="05">मे</option>
+                            <option value="06">जून</option>
+                            <option value="07">जुलै</option>
+                            <option value="08">ऑगस्ट</option>
+                            <option value="09">सप्टेंबर</option>
+                            <option value="10">ऑक्टोबर</option>
+                            <option value="11">नोव्हेंबर</option>
+                            <option value="12">डिसेंबर</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                        <button type="button" class="btn-add" style="padding: 10px 12px;" onclick="generateSummary()">🔍 गोषवारा पहा</button>
+                        <button type="button" class="btn-tour" style="padding: 10px 12px;" onclick="generateTourDiary()">🗓️ संभाव्य दौरा</button>
+                        <button type="button" class="btn-actual" style="padding: 10px 12px;" onclick="generateActualVisits()">🎯 प्रत्यक्ष भेटी</button>
+                    </div>
+                </div>
+                
+                <div id="summaryResultBox" class="summary-box"></div>
+                
+                <div id="summaryActionButtons" class="summary-action-btns">
+                    <button type="button" class="btn-pdf" onclick="downloadSummaryPDF()">📄 PDF डाउनलोड</button>
+                    <button type="button" class="btn-excel" onclick="downloadSummaryExcel()">📊 Excel डाउनलोड</button>
+                    <button type="button" class="btn-word" onclick="downloadSummaryWord()">📘 Word डाउनलोड</button>
+                    <button type="button" class="btn-print" onclick="window.print()">🖨️ प्रिंट करा</button>
+                </div>
+            </div>
+
+            <div class="page-nav-bar">
+                <button onclick="changePage(3)">⬅️ मागील पेज</button>
+                <span></span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // 🌐 गुगल ॲप्स स्क्रिप्टची वेब ॲप लिंक इथे टाका:
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwjcS3Ttj2lKRUluczGaG_9Yz0Rxg5KRX4b1jenYXCayrdKhvHAhm3aYO_hfHELFBCr/exec";
+
+    let myPieChart = null;
+    let editingIndex = -1; 
+    let currentReportType = 'summary';
+
+    const schoolDistances = {
+        "जिल्हा परिषद केंद्रीय प्राथमिक शाळा पिंपळगाव": 0, 
+        "जिल्हा परिषद हायस्कूल पिंपळगाव": 1,
+        "जिल्हा परिषद शिवाजी प्राथमिक शाळा पिंपळगाव": 2, 
+        "स्नेहा कन्या विद्यालय पिंपळगाव": 1,
+        "स्कायवर्ड इंटरनॅशनल स्कूल पिंपळगाव": 3, 
+        "जिल्हा परिषद उच्च प्राथमिक शाळा रेंगेपार/को.": 5,
+        "जिल्हा परिषद प्राथमिक शाळा सामेवाडा": 4, 
+        "जिल्हा परिषद प्राथमिक शाळा खैरी": 6,
+        "जिल्हा परिषद उच्च प्राथमिक शाळा मिरेगाव": 15, 
+        "शुक्राचार्य विद्यालय मिरेगाव": 15,
+        "समूह साधन केंद्र (CRC)": 0, 
+        "गट साधन केंद्र लाखनी (BRC)": 6,
+        "पंचायत समिती लाखनी": 5, 
+        "जिल्हा परिषद भंडारा (ZP)": 35,
+        "केंद्रस्तरीय शिक्षण परिषद": 0, 
+        "प्रशिक्षण / Training": 6,
+        "ONLINE MEETING": 0, 
+        "मुख्याध्यापक सभा": 0, 
+        "डाक देणे/बनविणे": 5,
+        "इतर शालेय कार्य": 0, 
+        "इतर शासकीय कार्य": 5, 
+        "Sunday/रविवार": 0,
+        "रजा/leave": 0
+    };
+
+    function formatDateDDMMYYYY(dateStr) {
+        if (!dateStr) return "";
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        return dateStr;
+    }
+
+    function getMarathiDay(dateStr) {
+        if (!dateStr) return "";
+        const days = ["रविवार", "सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            const d = new Date(parts[0], parseInt(parts[1]) - 1, parts[2]);
+            return days[d.getDay()];
+        }
+        return "";
+    }
+
+    function enterSystem() {
+        const welcome = document.getElementById('welcomeScreen');
+        welcome.style.opacity = '0';
+        setTimeout(() => {
+            welcome.style.display = 'none';
+            initApp();
+        }, 800);
+    }
+
+    function changePage(pageNum) {
+        document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+        document.getElementById('page' + pageNum).classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if(pageNum === 3) {
+            let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
+            renderChart(data); 
+        }
+    }
+
+    function initApp() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('visitDate').value = today;
+        populateYears(); 
+        setCurrentMonthAndYear(); 
+        updateUI();
+    }
+
+    function populateYears() {
+        const yearSelect = document.getElementById('summaryYear');
+        const currentYear = new Date().getFullYear();
+        let yearSet = new Set();
+        
+        for (let y = 2000; y <= 2050; y++) {
+            yearSet.add(y);
+        }
+
+        let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
+        data.forEach(item => {
+            if (item.visitDate) {
+                let parts = item.visitDate.split('-');
+                if (parts.length === 3) {
+                    let y = parseInt(parts[0], 10);
+                    if (!isNaN(y)) yearSet.add(y);
+                }
+            }
+        });
+
+        let sortedYears = Array.from(yearSet).sort((a, b) => a - b);
+        yearSelect.innerHTML = "";
+        
+        sortedYears.forEach(y => {
+            let option = document.createElement('option');
+            option.value = y;
+            option.innerText = y;
+            if (y === currentYear) option.selected = true;
+            yearSelect.appendChild(option);
+        });
+    }
+
+    function setCurrentMonthAndYear() {
+        const d = new Date();
+        const m = ("0" + (d.getMonth() + 1)).slice(-2);
+        document.getElementById('summaryMonth').value = m;
+    }
+
+    function getSelectedSchoolName() {
+        const schoolVal = document.getElementById('schoolName').value;
+        if (schoolVal === "इतर भेटी/कार्य") {
+            return document.getElementById('otherWorkName').value;
+        }
+        return schoolVal;
+    }
+
+    function onSchoolChange() {
+        const schoolSelect = document.getElementById('schoolName');
+        const otherWorkDiv = document.getElementById('otherWorkContainer');
+        const otherWorkSelect = document.getElementById('otherWorkName');
+
+        if (schoolSelect.value === "इतर भेटी/कार्य") {
+            otherWorkDiv.style.display = "block";
+            otherWorkSelect.setAttribute('required', 'required');
+            onOtherWorkChange();
+        } else {
+            otherWorkDiv.style.display = "none";
+            otherWorkSelect.removeAttribute('required');
+            otherWorkSelect.value = "";
+            
+            if(editingIndex === -1) { 
+                const schoolName = schoolSelect.value;
+                const distanceInput = document.getElementById('travelDistance');
+                if (schoolName && schoolDistances.hasOwnProperty(schoolName)) {
+                    distanceInput.value = schoolDistances[schoolName] * 2;
+                } else {
+                    distanceInput.value = "";
+                }
+                calculateVisits(schoolName);
+            }
+        }
+    }
+
+    function onOtherWorkChange() {
+        if(editingIndex === -1) {
+            const otherWork = document.getElementById('otherWorkName').value;
+            const distanceInput = document.getElementById('travelDistance');
+            if (otherWork && schoolDistances.hasOwnProperty(otherWork)) {
+                distanceInput.value = schoolDistances[otherWork] * 2;
+            } else {
+                distanceInput.value = "";
+            }
+            calculateVisits(otherWork);
+        }
+    }
+
+    function calculateVisits(targetSchoolName) {
+        const prevVisitsInput = document.getElementById('prevVisits');
+        const currentVisitInput = document.getElementById('currentVisit');
+
+        if (!targetSchoolName) { prevVisitsInput.value = ""; currentVisitInput.value = ""; return; }
+
+        let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
+        let count = 0;
+        data.forEach(item => { if (item.schoolName === targetSchoolName) count++; });
+
+        prevVisitsInput.value = count;
+        currentVisitInput.value = count + 1;
+        document.getElementById('currentOngoingCount').innerText = count + 1;
+    }
+
+    function updateCounters() {
+        let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
+        const selectedDate = document.getElementById('visitDate').value;
+        if (!selectedDate) return;
+
+        const dateObj = new Date(selectedDate);
+        const currYear = dateObj.getFullYear();
+        const currMonth = dateObj.getMonth();
+
+        let prevMonthYear = currYear;
+        let prevMonth = currMonth - 1;
+        if (prevMonth < 0) { prevMonth = 11; prevMonthYear -= 1; }
+
+        let currMonthCount = 0, prevMonthCount = 0;
+
+        data.forEach(item => {
+            if (!item.visitDate) return;
+            const d = new Date(item.visitDate);
+            if (d.getFullYear() === currYear && d.getMonth() === currMonth) currMonthCount++;
+            if (d.getFullYear() === prevMonthYear && d.getMonth() === prevMonth) prevMonthCount++;
+        });
+
+        document.getElementById('currMonthCount').innerText = currMonthCount;
+        document.getElementById('prevMonthCount').innerText = prevMonthCount;
+        renderSchoolBadges(data);
+    }
+
+    function renderSchoolBadges(data) {
+        let schoolCounts = {};
+        Object.keys(schoolDistances).forEach(school => schoolCounts[school] = 0);
+        
+        data.forEach(item => { 
+            if (schoolCounts.hasOwnProperty(item.schoolName)) {
+                schoolCounts[item.schoolName]++; 
+            } else if (item.schoolName) {
+                schoolCounts[item.schoolName] = 1;
+            }
+        });
+
+        const grid = document.getElementById('schoolBadgeGrid');
+        if(!grid) return;
+        grid.innerHTML = "";
+        for (const [school, count] of Object.entries(schoolCounts)) {
+            let escapedName = school.replace(/'/g, "\\'");
+            let badge = `<div class="school-mini-badge" onclick="showSchoolHistory('${escapedName}')" title="क्लिक करून इतिहास पहा">
+                ${school.replace("जिल्हा परिषद ", "जि.प. ")} <span class="badge-circle">${count}</span>
+            </div>`;
+            grid.innerHTML += badge;
+        }
+    }
+
+    function showSchoolHistory(schoolName) {
+        let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
+        let schoolVisits = data.filter(item => item.schoolName === schoolName)
+                               .sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
+
+        const historyBox = document.getElementById('schoolHistoryBox');
+        const historyList = document.getElementById('historyList');
+        
+        document.getElementById('historyTitle').innerText = `🏫 ${schoolName} - मागील भेटींचा इतिहास`;
+        historyList.innerHTML = "";
+        
+        if (schoolVisits.length === 0) {
+            historyList.innerHTML = `<li>या पर्यायाची कोणतीही नोंद आढळली नाही.</li>`;
+        } else {
+            schoolVisits.forEach((item, index) => {
+                let statusText = (item.status === 'completed' || !item.status) ? "✅ प्रत्यक्ष झालेली" : "🗓️ संभाव्य";
+                historyList.innerHTML += `<li>भेट क्र. ${index + 1}: दिनांक - <b>${formatDateDDMMYYYY(item.visitDate)}</b> (${statusText}) - स्वरूप: ${item.visitType}</li>`;
+            });
+        }
+        historyBox.style.display = "block";
+    }
+
+    // 📤 गुगल शीटमध्ये डेटा पाठवण्यासाठी नवीन फंक्शन
+    async function saveDataToGoogleSheet(dataArray) {
+        if (!WEB_APP_URL || WEB_APP_URL.includes("YOUR_GOOGLE_APPS_SCRIPT") || WEB_APP_URL.includes("तुमची_गुगल_लिंक_इथे_टाका")) {
+            return;
+        }
+        try {
+            await fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(dataArray)
+            });
+        } catch (error) {
+            console.error("डेटा सेव्ह करताना त्रुटी आली:", error);
+        }
+    }
+
+    function saveOrUpdateVisit() {
+        const schoolName = getSelectedSchoolName();
+        const visitDate = document.getElementById('visitDate').value;
+        const travelDistance = document.getElementById('travelDistance').value;
+        const prevVisits = document.getElementById('prevVisits').value;
+        const currentVisit = document.getElementById('currentVisit').value;
+        const visitType = document.getElementById('visitType').value;
+        const visitDetails = document.getElementById('visitDetails').value || "-";
+        const status = 'completed';
+
+        if(!schoolName || !visitDate || !visitType || prevVisits === "" || currentVisit === "") {
+            alert("कृपया सर्व आवश्यक माहिती भरा!"); return;
+        }
+
+        const visitData = { schoolName, visitDate, travelDistance, prevVisits, currentVisit, visitType, visitDetails, status };
+        let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
+        const btn = document.getElementById('mainSubmitBtn');
+
+        if (editingIndex > -1) {
+            data[editingIndex] = visitData;
+            editingIndex = -1; 
+            btn.innerHTML = "➕ माहिती जोडा (Add)";
+            btn.style.backgroundColor = "#27ae60"; 
+            alert("✅ माहिती यशस्वीरीत्या अपडेट केली!");
+        } else {
+            if (schoolName !== "Sunday/रविवार") {
+                data = data.filter(item => !(item.visitDate === visitDate && item.schoolName === "Sunday/रविवार"));
+            }
+            data.push(visitData);
+            alert("✅ माहिती यशस्वीरीत्या जोडली!");
+        }
+
+        localStorage.setItem("schoolVisitsData", JSON.stringify(data));
+        
+        // 🚀 गुगल शीटला डेटा पाठवणारी ओळ:
+        saveDataToGoogleSheet(data);
+
+        resetFormAndSub();
+        document.getElementById('currentOngoingCount').innerText = "0";
+        document.getElementById('schoolHistoryBox').style.display = "none";
+        
+        populateYears();
+        updateUI();
+    }
+
+    function resetFormAndSub() {
+        document.getElementById('visitForm').reset();
+        document.getElementById('otherWorkContainer').style.display = "none";
+        document.getElementById('otherWorkName').removeAttribute('required');
+    }
+
+    function editVisit(index) {
+        let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
+        let item = data[index];
+        
+        const mainSchoolSelect = document.getElementById('schoolName');
+        const otherWorkDiv = document.getElementById('otherWorkContainer');
+        const otherWorkSelect = document.getElementById('otherWorkName');
+
+        let optionExists = false;
+        for (let i = 0; i < mainSchoolSelect.options.length; i++) {
+            if (mainSchoolSelect.options[i].value === item.schoolName && item.schoolName !== "इतर भेटी/कार्य") {
+                optionExists = true;
+                break;
+            }
+        }
+
+        if (optionExists) {
+            mainSchoolSelect.value = item.schoolName;
+            otherWorkDiv.style.display = "none";
+            otherWorkSelect.removeAttribute('required');
+            otherWorkSelect.value = "";
+        } else {
+            mainSchoolSelect.value = "इतर भेटी/कार्य";
+            otherWorkDiv.style.display = "block";
+            otherWorkSelect.setAttribute('required', 'required');
+            otherWorkSelect.value = item.schoolName;
+        }
+
+        document.getElementById('visitDate').value = item.visitDate;
+        document.getElementById('travelDistance').value = item.travelDistance;
+        document.getElementById('prevVisits').value = item.prevVisits;
+        document.getElementById('currentVisit').value = item.currentVisit;
+        document.getElementById('visitType').value = item.visitType;
+        document.getElementById('visitDetails').value = item.visitDetails;
+        
+        editingIndex = index; 
+        const btn = document.getElementById('mainSubmitBtn');
+        btn.innerHTML = "✔️ अंतिम करा (Final)";
+        btn.style.backgroundColor = "#8e44ad"; 
+        
+        changePage(1); 
+    }
+
+    function deleteVisit(index) {
+        if(confirm("तुम्हाला ही नोंद कायमची काढून टाकायची आहे का?")) {
+            let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
+            data.splice(index, 1); 
+            localStorage.setItem("schoolVisitsData", JSON.stringify(data));
+            
+            // गुगल शीटवर अपडेटेड डेटा पाठवा
+            saveDataToGoogleSheet(data);
+
+            if (editingIndex === index) {
+                editingIndex = -1;
+                document.getElementById('mainSubmitBtn').innerHTML = "➕ माहिती जोडा (Add)";
+                document.getElementById('mainSubmitBtn').style.backgroundColor = "#27ae60";
+                resetFormAndSub();
+            }
+            populateYears();
+            updateUI();
+        }
+    }
+
+    function clearData() {
+        if(confirm("तुम्हाला सर्व जतन केलेली माहिती पुसून टाकायची आहे का?")) {
+            localStorage.removeItem("schoolVisitsData");
+            
+            // गुगल शीट रिकामी करण्यासाठी रिक्त डेटा पाठवा
+            saveDataToGoogleSheet([]);
+
+            populateYears();
+            updateUI();
+            alert("सर्व माहिती पुसून टाकली आहे!");
+        }
+    }
+
+    function autoInsertSundays(data) {
+        if (!data || data.length === 0) return data;
+
+        const monthsYears = new Set();
+        data.forEach(item => {
+            if (item.visitDate) {
+                const parts = item.visitDate.split('-');
+                if (parts.length === 3) {
+                    monthsYears.add(`${parts[0]}-${parts[1]}`);
+                }
+            }
+        });
+
+        monthsYears.forEach(ym => {
+            const [yearStr, monthStr] = ym.split('-');
+            const year = parseInt(yearStr, 10);
+            const month = parseInt(monthStr, 10) - 1;
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const mStr = (month + 1).toString().padStart(2, '0');
+                const dStr = day.toString().padStart(2, '0');
+                const dateStr = `${yearStr}-${mStr}-${dStr}`;
+
+                const checkDate = new Date(year, month, day);
+                if (checkDate.getDay() === 0) { 
+                    const exists = data.some(item => item.visitDate === dateStr);
+                    if (!exists) {
+                        data.push({
+                            schoolName: "Sunday/रविवार",
+                            visitDate: dateStr,
+                            travelDistance: "0",
+                            prevVisits: "0",
+                            currentVisit: "0",
+                            visitType: "Sunday/रविवार",
+                            visitDetails: "रविवार (सार्वजनिक सुट्टी)",
+                            status: 'completed'
+                        });
+                    }
+                }
+            }
+        });
+
+        return data;
+    }
+
+    function updateUI() {
+        let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
+        
+        data = autoInsertSundays(data);
+        data.sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
+        
+        localStorage.setItem("schoolVisitsData", JSON.stringify(data));
+
+        renderTable(data);
+        renderChart(data);
+        updateCounters();
+    }
+
+    function renderTable(data) {
+        const tbody = document.querySelector('#visitTable tbody');
+        if(!tbody) return;
+        tbody.innerHTML = "";
+        data.forEach((item, index) => {
+            let statusBadge = (item.status === 'completed' || !item.status) 
+                ? `<span class="status-badge status-completed">✅ प्रत्यक्ष</span>`
+                : `<span class="status-badge status-tentative">🗓️ संभाव्य</span>`;
+
+            let tr = `<tr>
+                <td>${formatDateDDMMYYYY(item.visitDate)}</td>
+                <td>${item.schoolName}</td>
+                <td style="text-align:center;">${item.travelDistance}</td>
+                <td style="text-align:center;">${item.prevVisits}</td>
+                <td style="text-align:center;">${item.currentVisit}</td>
+                <td>${item.visitType}</td>
+                <td>${item.visitDetails}</td>
+                <td style="text-align:center;">${statusBadge}</td>
+                <td class="no-print" style="text-align:center;">
+                    <button class="action-btn edit-btn" onclick="editVisit(${index})">संपादन</button>
+                    <button class="action-btn delete-btn" onclick="deleteVisit(${index})">हटवा</button>
+                </td>
+            </tr>`;
+            tbody.innerHTML += tr;
+        });
+    }
+
+    function renderChart(data) {
+        const ctx = document.getElementById('visitPieChart');
+        if (!ctx) return;
+
+        let counts = {};
+        data.forEach(item => {
+            counts[item.visitType] = (counts[item.visitType] || 0) + 1;
+        });
+
+        const labels = Object.keys(counts);
+        const values = Object.values(counts);
+
+        if (myPieChart) {
+            myPieChart.destroy();
+        }
+
+        if (labels.length === 0) {
+            return;
+        }
+
+        myPieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: [
+                        '#2980b9', '#27ae60', '#8e44ad', '#e67e22', '#e74c3c',
+                        '#16a085', '#f39c12', '#d35400', '#c0392b', '#7f8c8d'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    /* ---------------- UNIVERSAL EXPORT & PRINT FUNCTIONS ---------------- */
+
+    function exportElementToExcel(elementId, filename) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        
+        const clone = el.cloneNode(true);
+        clone.querySelectorAll('.no-print').forEach(e => e.remove());
+
+        const table = clone.querySelector('table');
+        let wb;
+        if (table) {
+            wb = XLSX.utils.table_to_book(table, { sheet: "School Visits" });
+        } else {
+            const ws = XLSX.utils.html_to_sheet(clone);
+            wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "School Visits");
+        }
+        XLSX.writeFile(wb, filename + '.xlsx');
+    }
+
+    function exportElementToWord(elementId, filename) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        
+        const clone = el.cloneNode(true);
+        clone.querySelectorAll('.no-print').forEach(e => e.remove());
+
+        const html = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <title>Document</title>
+                <style>
+                    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; }
+                    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+                    th, td { border: 1px solid #333333; padding: 6px 8px; font-size: 10pt; text-align: left; }
+                    th { background-color: #f2f2f2; font-weight: bold; }
+                    .summary-header { text-align: center; margin-bottom: 15px; }
+                    .summary-sign-box { margin-top: 30px; display: flex; justify-content: space-between; }
+                </style>
+            </head>
+            <body>${clone.innerHTML}</body>
+            </html>`;
+
+        const blob = new Blob(['\ufeff' + html], { type: 'application/msword;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename + '.doc';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    function downloadPage3PDF() {
+        const element = document.getElementById('printArea');
+        const clone = element.cloneNode(true);
+        clone.querySelectorAll('.no-print').forEach(el => el.remove());
+
+        const opt = {
+            margin:       [0.4, 0.4, 0.4, 0.4],
+            filename:     'School_Visit_Register.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, windowWidth: 1000 }, 
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+        html2pdf().set(opt).from(clone).save();
+    }
+
+    function downloadExcel() {
+        exportElementToExcel('printArea', 'School_Visit_Register');
+    }
+
+    function downloadWord() {
+        exportElementToWord('printArea', 'School_Visit_Register');
+    }
+
+    function printTable() {
+        window.print();
+    }
+
+    /* ---------------- PAGE 4 SUMMARY / REPORTS ---------------- */
+
+    function getMonthNameMarathi(monthNum) {
+        const months = {
+            "01": "जानेवारी", "02": "फेब्रुवारी", "03": "मार्च", "04": "एप्रिल",
+            "05": "मे", "06": "जून", "07": "जुलै", "08": "ऑगस्ट",
+            "09": "सप्टेंबर", "10": "ऑक्टोबर", "11": "नोव्हेंबर", "12": "डिसेंबर"
+        };
+        return months[monthNum] || monthNum;
+    }
+
+    function getSummaryHeader(title) {
+        const year = document.getElementById('summaryYear').value;
+        const month = document.getElementById('summaryMonth').value;
+        const monthName = getMonthNameMarathi(month);
+
+        return `
+            <div class="summary-header">
+                <h3>समूह साधन केंद्र पिंपळगाव/स.</h3>
+                <h4>${title}</h4>
+                <p><b>महिना:</b> ${monthName} ${year} | <b>केंद्र समन्वयक:</b> भूषणकुमार बा. मेश्राम</p>
+                <p>पंचायत समिती: लाखनी | जिल्हा: भंडारा</p>
+            </div>
+        `;
+    }
+
+    function getSummaryFooter() {
+        return `
+            <div class="summary-sign-box">
+                <div>दिनांक: ____________</div>
+                <div style="text-align: right;">
+                    <b>(भूषणकुमार बा. मेश्राम)</b><br>
+                    केंद्र समन्वयक<br>
+                    समूह साधन केंद्र पिंपळगाव/स.
+                </div>
+            </div>
+        `;
+    }
+
+    function getFilteredData() {
+        const year = document.getElementById('summaryYear').value;
+        const month = document.getElementById('summaryMonth').value;
+        let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
+
+        return data.filter(item => {
+            if (!item.visitDate) return false;
+            const parts = item.visitDate.split('-');
+            return parts.length === 3 && parts[0] === year && parts[1] === month;
+        }).sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
+    }
+
+    function generateSummary() {
+        currentReportType = 'Goshwara';
+        const filtered = getFilteredData();
+        const box = document.getElementById('summaryResultBox');
+        const btns = document.getElementById('summaryActionButtons');
+
+        if (filtered.length === 0) {
+            box.innerHTML = getSummaryHeader('महिना व वर्षनिहाय गोषवारा') + `<p style="text-align:center; color:red;">या महिन्याची कोणतीही नोंद आढळली नाही.</p>`;
+            box.style.display = "block";
+            btns.style.display = "none";
+            return;
+        }
+
+        let totalVisits = filtered.length;
+        let totalDistance = filtered.reduce((acc, curr) => acc + (parseFloat(curr.travelDistance) || 0), 0);
+        
+        let typeCounts = {};
+        filtered.forEach(item => {
+            typeCounts[item.visitType] = (typeCounts[item.visitType] || 0) + 1;
+        });
+
+        let typeListHtml = "";
+        for (const [type, count] of Object.entries(typeCounts)) {
+            typeListHtml += `<li><b>${type}:</b> ${count} वेळ</li>`;
+        }
+
+        box.innerHTML = `
+            ${getSummaryHeader('महिना व वर्षनिहाय गोषवारा')}
+            <div style="margin-top: 15px;">
+                <p><b>एकूण कार्य/भेटी संख्या:</b> ${totalVisits}</p>
+                <p><b>एकूण प्रवास अंतर:</b> ${totalDistance} कि.मी.</p>
+                <h5 style="margin-bottom: 5px; color:#1b4f72;">भेटीच्या स्वरूपानुसार वर्गीकरण:</h5>
+                <ul>${typeListHtml}</ul>
+            </div>
+            ${getSummaryFooter()}
+        `;
+
+        box.style.display = "block";
+        btns.style.display = "flex";
+    }
+
+    function generateTourDiary() {
+        currentReportType = 'Sambhavya_Doura';
+        const filtered = getFilteredData();
+        const box = document.getElementById('summaryResultBox');
+        const btns = document.getElementById('summaryActionButtons');
+
+        if (filtered.length === 0) {
+            box.innerHTML = getSummaryHeader('संभाव्य दौरा दैनंदिनी') + `<p style="text-align:center; color:red;">या महिन्याची कोणतीही नोंद आढळली नाही.</p>`;
+            box.style.display = "block";
+            btns.style.display = "none";
+            return;
+        }
+
+        let tableRows = "";
+        filtered.forEach((item, index) => {
+            tableRows += `<tr>
+                <td style="text-align:center;">${index + 1}</td>
+                <td>${formatDateDDMMYYYY(item.visitDate)} (${getMarathiDay(item.visitDate)})</td>
+                <td>${item.schoolName}</td>
+                <td style="text-align:center;">${item.travelDistance}</td>
+                <td>${item.visitType}</td>
+                <td>${item.visitDetails}</td>
+            </tr>`;
+        });
+
+        box.innerHTML = `
+            ${getSummaryHeader('संभाव्य दौरा दैनंदिनी')}
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>अ.क्र.</th>
+                            <th>दिनांक व वार</th>
+                            <th>भेटीचे ठिकाण / शाळा</th>
+                            <th>अंतर (किमी)</th>
+                            <th>भेटीचे स्वरूप</th>
+                            <th>उद्देश / विवरण</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                </table>
+            </div>
+            ${getSummaryFooter()}
+        `;
+
+        box.style.display = "block";
+        btns.style.display = "flex";
+    }
+
+    function generateActualVisits() {
+        currentReportType = 'Pratyaksha_Bheti';
+        const filtered = getFilteredData().filter(item => item.schoolName !== "Sunday/रविवार");
+        const box = document.getElementById('summaryResultBox');
+        const btns = document.getElementById('summaryActionButtons');
+
+        if (filtered.length === 0) {
+            box.innerHTML = getSummaryHeader('प्रत्यक्ष झालेल्या भेटींचा अहवाल') + `<p style="text-align:center; color:red;">या महिन्यात कोणतीही प्रत्यक्ष शाळा भेट नोंदवली गेली नाही.</p>`;
+            box.style.display = "block";
+            btns.style.display = "none";
+            return;
+        }
+
+        let tableRows = "";
+        filtered.forEach((item, index) => {
+            tableRows += `<tr>
+                <td style="text-align:center;">${index + 1}</td>
+                <td>${formatDateDDMMYYYY(item.visitDate)} (${getMarathiDay(item.visitDate)})</td>
+                <td>${item.schoolName}</td>
+                <td style="text-align:center;">${item.travelDistance}</td>
+                <td style="text-align:center;">${item.currentVisit}</td>
+                <td>${item.visitType}</td>
+                <td>${item.visitDetails}</td>
+            </tr>`;
+        });
+
+        box.innerHTML = `
+            ${getSummaryHeader('प्रत्यक्ष झालेल्या शाळा भेटींचा अहवाल')}
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>अ.क्र.</th>
+                            <th>दिनांक व वार</th>
+                            <th>शाळेचे नाव / ठिकाण</th>
+                            <th>अंतर (किमी)</th>
+                            <th>कितवी भेट</th>
+                            <th>भेटीचे स्वरूप</th>
+                            <th>विवरण / नोंद</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRows}</tbody>
+                </table>
+            </div>
+            ${getSummaryFooter()}
+        `;
+
+        box.style.display = "block";
+        btns.style.display = "flex";
+    }
+
+    function downloadSummaryPDF() {
+        const element = document.getElementById('summaryResultBox');
+        const clone = element.cloneNode(true);
+        clone.querySelectorAll('.no-print').forEach(el => el.remove());
+
+        const opt = {
+            margin:       [0.4, 0.4, 0.4, 0.4],
+            filename:     `School_Visit_${currentReportType}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, windowWidth: 900 },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+        html2pdf().set(opt).from(clone).save();
+    }
+
+    function downloadSummaryExcel() {
+        exportElementToExcel('summaryResultBox', `School_Visit_${currentReportType}`);
+    }
+
+    function downloadSummaryWord() {
+        exportElementToWord('summaryResultBox', `School_Visit_${currentReportType}`);
+    }
+
+    window.onload = function() {
+        // App initializes after welcome screen button click
+    };
+</script>
+</body>
+</html>
