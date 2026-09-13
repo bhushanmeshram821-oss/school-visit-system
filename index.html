@@ -599,7 +599,7 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxVTcdGAhZLPpdJmbNKwi3JVp9bjGNMKRMoSyI8Olx7Bzh0VcMsiLutHRhrAL3aDd0L/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby2bpInL6pLxLXL2iL_6ySnlaq9UGT89yUgx8VckrHUIZyGbdHzqtfxp2qF-F0j9zgV/exec";
 
     let myPieChart = null;
     let editingIndex = -1; 
@@ -696,9 +696,29 @@
         }
     }
 
-    function initApp() {
+    // गुगल शीटवरून डेटा लोड (Sync) करण्याचे नवीन फंक्शन
+    async function loadDataFromGoogleSheet() {
+        if (!WEB_APP_URL || WEB_APP_URL.includes("तुमची_गुगल_लिंक_इथे_टाका")) {
+            return;
+        }
+        try {
+            let response = await fetch(WEB_APP_URL);
+            let result = await response.json();
+            if (Array.isArray(result) && result.length > 0) {
+                localStorage.setItem("schoolVisitsData", JSON.stringify(result));
+            }
+        } catch (error) {
+            console.error("गुगल शीटवरून डेटा सिंक करताना त्रुटी आली:", error);
+        }
+    }
+
+    async function initApp() {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('visitDate').value = today;
+        
+        // ॲप सुरू होताच गुगल शीटवरून लेटेस्ट डेटा घेणे
+        await loadDataFromGoogleSheet();
+        
         populateYears(); 
         setCurrentMonthAndYear(); 
         updateUI();
@@ -934,7 +954,6 @@
             alert("✅ माहिती यशस्वीरीत्या जोडली!");
         }
 
-        // तारीखक्रमानुसार सॉर्ट करणे (Chronological Order)
         data.sort((a, b) => a.visitDate.localeCompare(b.visitDate));
 
         localStorage.setItem("schoolVisitsData", JSON.stringify(data));
