@@ -599,7 +599,7 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyRrWXoPwIMpsfiLZTNijqCs6OBB7O16bmngp7nSnryZ3uwTfrawEVGTL1PbNDoGqbt/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwMENGO1HAHUaW_tWobvrdzBXLDxqHB-_rOHohoAzY3bhC94Bij5N_gTWF19LYuXTWD/exec";
 
     let myPieChart = null;
     let editingIndex = -1; 
@@ -631,7 +631,6 @@
         "रजा/leave": 0
     };
 
-    // रविवार, रजा, सुट्टी ओळखण्यासाठी सहाय्यक फंक्शन
     function isNonVisit(item) {
         if (!item) return true;
         const school = (item.schoolName || "").toLowerCase();
@@ -646,7 +645,7 @@
             const parts = item.visitDate.split('-');
             if (parts.length === 3) {
                 const d = new Date(parts[0], parseInt(parts[1]) - 1, parts[2]);
-                if (d.getDay() === 0) return true; // रविवार
+                if (d.getDay() === 0) return true; 
             }
         }
         return false;
@@ -799,7 +798,6 @@
 
         let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
         let count = 0;
-        // फक्त प्रत्यक्ष भेटी मोजल्या जाव्यात
         data.forEach(item => { 
             if (item.schoolName === targetSchoolName && !isNonVisit(item)) count++; 
         });
@@ -826,7 +824,7 @@
 
         data.forEach(item => {
             if (!item.visitDate) return;
-            if (isNonVisit(item)) return; // रविवार, सुट्टी, रजा वगळणे
+            if (isNonVisit(item)) return; 
             const d = new Date(item.visitDate);
             if (d.getFullYear() === currYear && d.getMonth() === currMonth) currMonthCount++;
             if (d.getFullYear() === prevMonthYear && d.getMonth() === prevMonth) prevMonthCount++;
@@ -846,7 +844,7 @@
         });
         
         data.forEach(item => { 
-            if (isNonVisit(item)) return; // सुट्ट्या/रजा मोजणीतून वगळणे
+            if (isNonVisit(item)) return; 
             if (schoolCounts.hasOwnProperty(item.schoolName)) {
                 schoolCounts[item.schoolName]++; 
             } else if (item.schoolName) {
@@ -869,7 +867,7 @@
     function showSchoolHistory(schoolName) {
         let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
         let schoolVisits = data.filter(item => item.schoolName === schoolName && !isNonVisit(item))
-                               .sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
+                               .sort((a, b) => a.visitDate.localeCompare(b.visitDate));
 
         const historyBox = document.getElementById('schoolHistoryBox');
         const historyList = document.getElementById('historyList');
@@ -878,7 +876,7 @@
         historyList.innerHTML = "";
         
         if (schoolVisits.length === 0) {
-            historyList.innerHTML = `<li>या शाळेची कोणतीही प्रत्यक्ष भेट नोंद आढळली नाही.</li>`;
+            historyList.innerHTML = `<li>या शाळेची/कार्याची कोणतीही प्रत्यक्ष भेट नोंद आढळली नाही.</li>`;
         } else {
             schoolVisits.forEach((item, index) => {
                 let statusText = "✅ प्रत्यक्ष";
@@ -935,6 +933,9 @@
             data.push(visitData);
             alert("✅ माहिती यशस्वीरीत्या जोडली!");
         }
+
+        // तारीखक्रमानुसार सॉर्ट करणे (Chronological Order)
+        data.sort((a, b) => a.visitDate.localeCompare(b.visitDate));
 
         localStorage.setItem("schoolVisitsData", JSON.stringify(data));
         saveDataToGoogleSheet(data);
@@ -1016,9 +1017,10 @@
     }
 
     function deleteVisit(index) {
-        if(confirm("तुम्हाला ही नोंद कायमची काढून टाकायची आहे का?")) {
+        if(confirm("तुम्ही ही नोंद कायमची काढून टाकणार आहात का?")) {
             let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
             data.splice(index, 1); 
+            data.sort((a, b) => a.visitDate.localeCompare(b.visitDate));
             localStorage.setItem("schoolVisitsData", JSON.stringify(data));
             
             saveDataToGoogleSheet(data);
@@ -1085,7 +1087,7 @@
         let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
         
         data = autoInsertSundays(data);
-        data.sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
+        data.sort((a, b) => a.visitDate.localeCompare(b.visitDate));
         
         localStorage.setItem("schoolVisitsData", JSON.stringify(data));
 
@@ -1127,7 +1129,7 @@
 
         let counts = {};
         data.forEach(item => {
-            if (isNonVisit(item)) return; // चार्टमध्ये रविवार/रजा वगळणे
+            if (isNonVisit(item)) return; 
             counts[item.visitType] = (counts[item.visitType] || 0) + 1;
         });
 
@@ -1291,17 +1293,17 @@
             if (!item.visitDate) return false;
             const parts = item.visitDate.split('-');
             return parts.length === 3 && parts[0] === year && parts[1] === month;
-        }).sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
+        }).sort((a, b) => a.visitDate.localeCompare(b.visitDate));
     }
 
     function generateSummary() {
         currentReportType = 'Goshwara';
-        const filtered = getFilteredData().filter(item => !isNonVisit(item)); // गोषव्यातून सुट्ट्या/रजा वगळणे
+        const filtered = getFilteredData().filter(item => !isNonVisit(item)); 
         const box = document.getElementById('summaryResultBox');
         const btns = document.getElementById('summaryActionButtons');
 
         if (filtered.length === 0) {
-            box.innerHTML = getSummaryHeader('महिना व वर्षनिहाय गोषवारा') + `<p style="text-align:center; color:red;">या महिन्याची कोणتیही प्रत्यक्ष भेट/कार्य नोंद आढळली नाही.</p>`;
+            box.innerHTML = getSummaryHeader('महिना व वर्षनिहाय गोषवारा') + `<p style="text-align:center; color:red;">या महिन्याची कोणतीही प्रत्यक्ष भेट/कार्य नोंद आढळली नाही.</p>`;
             box.style.display = "block";
             btns.style.display = "none";
             return;
@@ -1368,7 +1370,7 @@
                         <tr>
                             <th>अ.क्र.</th>
                             <th>दिनांक व वार</th>
-                            <th>भेटीचे ठिकाण / शाळा</th>
+                            <th>भेटीचे ठिकाण / शाळा / कार्य</th>
                             <th>अंतर (किमी)</th>
                             <th>भेटीचे स्वरूप</th>
                             <th>उद्देश / विवरण</th>
@@ -1386,12 +1388,12 @@
 
     function generateActualVisits() {
         currentReportType = 'Pratyaksha_Bheti';
-        const filtered = getFilteredData().filter(item => !isNonVisit(item)); // फक्त प्रत्यक्ष भेटी
+        const filtered = getFilteredData().filter(item => !isNonVisit(item)); 
         const box = document.getElementById('summaryResultBox');
         const btns = document.getElementById('summaryActionButtons');
 
         if (filtered.length === 0) {
-            box.innerHTML = getSummaryHeader('प्रत्यक्ष झालेल्या भेटींचा अहवाल') + `<p style="text-align:center; color:red;">या महिन्यात कोणतीही प्रत्यक्ष शाळा भेट नोंदवली गेली नाही.</p>`;
+            box.innerHTML = getSummaryHeader('प्रत्यक्ष झालेल्या भेटींचा अहवाल') + `<p style="text-align:center; color:red;">या महिन्यात कोणतीही प्रत्यक्ष शाळा भेट किंवा कार्य नोंदवले गेले नाही.</p>`;
             box.style.display = "block";
             btns.style.display = "none";
             return;
@@ -1411,14 +1413,14 @@
         });
 
         box.innerHTML = `
-            ${getSummaryHeader('प्रत्यक्ष झालेल्या शाळा भेटींचा अहवाल')}
+            ${getSummaryHeader('प्रत्यक्ष झालेल्या शाळा भेटी व कार्याचा अहवाल')}
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
                             <th>अ.क्र.</th>
                             <th>दिनांक व वार</th>
-                            <th>शाळेचे नाव / ठिकाण</th>
+                            <th>शाळेचे नाव / ठिकाण / कार्य</th>
                             <th>अंतर (किमी)</th>
                             <th>कितवी भेट</th>
                             <th>भेटीचे स्वरूप</th>
