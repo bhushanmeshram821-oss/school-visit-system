@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- html2pdf Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- SheetJS Library (फॉरमॅट एरर दूर करण्यासाठी व अस्सल .xlsx साठी) -->
+    <!-- SheetJS Library -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <style>
@@ -475,12 +475,12 @@
 
                 <div class="button-area">
                     <button type="button" id="mainSubmitBtn" class="btn-add" onclick="saveOrUpdateVisit()">➕ माहिती जोडा (Add)</button>
-                    <button type="button" class="btn-clear" onclick="clearData()">🗑️ सर्व माहिती पुसा</button>
+                    <button type="button" class="btn-clear" onclick="clearFormOnly()">🗑️ फॉर्म पुसा (Clear Form)</button>
                 </div>
             </form>
             
             <div class="page-nav-bar">
-                <span></span>
+                <button onclick="showWelcomeScreen()" style="background-color: #7f8c8d;">🔙 मुख्य स्क्रीन</button>
                 <button onclick="changePage(2)">पुढील पेज ➡️</button>
             </div>
         </div>
@@ -599,8 +599,8 @@
 </div>
 
 <script>
-    // 🌐 गुगल ॲप्स स्क्रिप्टची वेब ॲप लिंक इथे टाका:
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwjcS3Ttj2lKRUluczGaG_9Yz0Rxg5KRX4b1jenYXCayrdKhvHAhm3aYO_hfHELFBCr/exec";
+    // 🌐 खालील URL मध्ये तुमच्या गुगल ॲप्स स्क्रिप्ट (Google Apps Script) ची वेब ॲप लिंक टाका:
+    const WEB_APP_URL = "तुमची_गुगल_लिंक_इथे_टाका";
 
     let myPieChart = null;
     let editingIndex = -1; 
@@ -659,6 +659,12 @@
             welcome.style.display = 'none';
             initApp();
         }, 800);
+    }
+
+    function showWelcomeScreen() {
+        const welcome = document.getElementById('welcomeScreen');
+        welcome.style.opacity = '1';
+        welcome.style.display = 'flex';
     }
 
     function changePage(pageNum) {
@@ -853,9 +859,9 @@
         historyBox.style.display = "block";
     }
 
-    // 📤 गुगल शीटमध्ये डेटा पाठवण्यासाठी नवीन फंक्शन
+    // 📤 गुगल शीटमध्ये डेटा ऑनलाईन पाठवण्यासाठी फंक्शन
     async function saveDataToGoogleSheet(dataArray) {
-        if (!WEB_APP_URL || WEB_APP_URL.includes("YOUR_GOOGLE_APPS_SCRIPT") || WEB_APP_URL.includes("तुमची_गुगल_लिंक_इथे_टाका")) {
+        if (!WEB_APP_URL || WEB_APP_URL.includes("तुमची_गुगल_लिंक_इथे_टाका")) {
             return;
         }
         try {
@@ -904,7 +910,7 @@
 
         localStorage.setItem("schoolVisitsData", JSON.stringify(data));
         
-        // 🚀 गुगल शीटला डेटा पाठवणारी ओळ:
+        // गुगल शीटला डेटा पाठवा
         saveDataToGoogleSheet(data);
 
         resetFormAndSub();
@@ -919,6 +925,25 @@
         document.getElementById('visitForm').reset();
         document.getElementById('otherWorkContainer').style.display = "none";
         document.getElementById('otherWorkName').removeAttribute('required');
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('visitDate').value = today;
+        document.getElementById('travelDistance').value = "";
+        document.getElementById('prevVisits').value = "";
+        document.getElementById('currentVisit').value = "";
+        document.getElementById('currentOngoingCount').innerText = "0";
+    }
+
+    function clearFormOnly() {
+        if(confirm("तुम्हाला फॉर्ममधील सध्याची भरलेली माहिती पुसून टाकायची आहे का?")) {
+            resetFormAndSub();
+            if (editingIndex > -1) {
+                editingIndex = -1;
+                const btn = document.getElementById('mainSubmitBtn');
+                btn.innerHTML = "➕ माहिती जोडा (Add)";
+                btn.style.backgroundColor = "#27ae60";
+            }
+            updateCounters();
+        }
     }
 
     function editVisit(index) {
@@ -970,7 +995,6 @@
             data.splice(index, 1); 
             localStorage.setItem("schoolVisitsData", JSON.stringify(data));
             
-            // गुगल शीटवर अपडेटेड डेटा पाठवा
             saveDataToGoogleSheet(data);
 
             if (editingIndex === index) {
@@ -981,19 +1005,6 @@
             }
             populateYears();
             updateUI();
-        }
-    }
-
-    function clearData() {
-        if(confirm("तुम्हाला सर्व जतन केलेली माहिती पुसून टाकायची आहे का?")) {
-            localStorage.removeItem("schoolVisitsData");
-            
-            // गुगल शीट रिकामी करण्यासाठी रिक्त डेटा पाठवा
-            saveDataToGoogleSheet([]);
-
-            populateYears();
-            updateUI();
-            alert("सर्व माहिती पुसून टाकली आहे!");
         }
     }
 
@@ -1034,6 +1045,7 @@
                             currentVisit: "0",
                             visitType: "Sunday/रविवार",
                             visitDetails: "रविवार (सार्वजनिक सुट्टी)",
+...
                             status: 'completed'
                         });
                     }
@@ -1125,8 +1137,6 @@
         });
     }
 
-    /* ---------------- UNIVERSAL EXPORT & PRINT FUNCTIONS ---------------- */
-
     function exportElementToExcel(elementId, filename) {
         const el = document.getElementById(elementId);
         if (!el) return;
@@ -1208,8 +1218,6 @@
     function printTable() {
         window.print();
     }
-
-    /* ---------------- PAGE 4 SUMMARY / REPORTS ---------------- */
 
     function getMonthNameMarathi(monthNum) {
         const months = {
@@ -1424,10 +1432,6 @@
     function downloadSummaryWord() {
         exportElementToWord('summaryResultBox', `School_Visit_${currentReportType}`);
     }
-
-    window.onload = function() {
-        // App initializes after welcome screen button click
-    };
 </script>
 </body>
 </html>
