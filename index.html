@@ -415,7 +415,7 @@
 
                 <div class="form-group">
                     <label for="visitDate">📅 भेटीचा दिनांक:</label>
-                    <input type="date" id="visitDate" required onchange="updateCounters()">
+                    <input type="date" id="visitDate" required onchange="onDateOrSchoolChange()">
                 </div>
 
                 <div class="form-group">
@@ -696,7 +696,6 @@
         }
     }
 
-    // गुगल शीटवरून डेटा लोड (Sync) करण्याचे नवीन फंक्शन
     async function loadDataFromGoogleSheet() {
         if (!WEB_APP_URL || WEB_APP_URL.includes("तुमची_गुगल_लिंक_इथे_टाका")) {
             return;
@@ -716,7 +715,6 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('visitDate').value = today;
         
-        // ॲप सुरू होताच गुगल शीटवरून लेटेस्ट डेटा घेणे
         await loadDataFromGoogleSheet();
         
         populateYears(); 
@@ -792,7 +790,7 @@
                 } else {
                     distanceInput.value = "";
                 }
-                calculateVisits(schoolName);
+                calculateVisitsAndSet();
             }
         }
     }
@@ -806,25 +804,73 @@
             } else {
                 distanceInput.value = "";
             }
-            calculateVisits(otherWork);
+            calculateVisitsAndSet();
         }
     }
 
-    function calculateVisits(targetSchoolName) {
+    function onDateOrSchoolChange() {
+        calculateVisitsAndSet();
+        updateCounters();
+    }
+
+    // नवीन किंवा जुन्या तारखेनुसार विशिष्ट शाळेच्या भेटी अचूक मोजणारे फंक्शन
+    function calculateVisitsAndSet() {
+        const targetSchoolName = getSelectedSchoolName();
+        const currentDate = document.getElementById('visitDate').value;
         const prevVisitsInput = document.getElementById('prevVisits');
         const currentVisitInput = document.getElementById('currentVisit');
 
-        if (!targetSchoolName) { prevVisitsInput.value = ""; currentVisitInput.value = ""; return; }
+        if (!targetSchoolName || !currentDate) {
+            prevVisitsInput.value = "";
+            currentVisitInput.value = "";
+            document.getElementById('currentOngoingCount').innerText = "0";
+            return;
+        }
 
         let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
         let count = 0;
-        data.forEach(item => { 
-            if (item.schoolName === targetSchoolName && !isNonVisit(item)) count++; 
+
+        data.forEach((item, index) => {
+            if (editingIndex > -1 && index === editingIndex) return;
+
+            if (item.schoolName === targetSchoolName && !isNonVisit(item)) {
+                if (item.visitDate < currentDate) {
+                    count++;
+                } else if (item.visitDate === currentDate) {
+                    count++;
+                }
+            }
         });
 
         prevVisitsInput.value = count;
         currentVisitInput.value = count + 1;
         document.getElementById('currentOngoingCount').innerText = count + 1;
+    }
+
+    // संपूर्ण डेटाबेसमधील सर्व नोंदींचे 'पूर्वीच्या भेटी' आणि 'कितवी भेट' दिनांकाप्रमाणे ऑटोमॅटिक अपडेट करणारे मुख्य फंक्शन
+    function recalculateAllVisits(data) {
+        if (!data || data.length === 0) return data;
+
+        // प्रथम डेटा दिनांकाच्या क्रमानुसार सॉर्ट करा जेणेकरून जुन्या-नव्या नोंदी योग्य क्रमाने येतील
+        data.sort((a, b) => a.visitDate.localeCompare(b.visitDate));
+
+        let schoolHistoryCount = {};
+
+        data.forEach((item, index) => {
+            if (isNonVisit(item)) return;
+
+            let sName = item.schoolName;
+            if (!schoolHistoryCount[sName]) {
+                schoolHistoryCount[sName] = 0;
+            }
+
+            // एडिट करताना स्वतःचीच जुنی एन्ट्री वगळून इतर जुन्या भेटी मोजाव्यात
+            item.prevVisits = schoolHistoryCount[sName];
+            schoolHistoryCount[sName]++;
+            item.currentVisit = schoolHistoryCount[sName];
+        });
+
+        return data;
     }
 
     function updateCounters() {
@@ -926,23 +972,26 @@
         const schoolName = getSelectedSchoolName();
         const visitDate = document.getElementById('visitDate').value;
         const travelDistance = document.getElementById('travelDistance').value;
-        const prevVisits = document.getElementById('prevVisits').value;
-        const currentVisit = document.getElementById('currentVisit').value;
         const visitType = document.getElementById('visitType').value;
         const visitDetails = document.getElementById('visitDetails').value || "-";
         const status = 'completed';
 
-        if(!schoolName || !visitDate || !visitType || prevVisits === "" || currentVisit === "") {
+        if(!schoolName || !visitDate || !visitType) {
             alert("कृपया सर्व आवश्यक माहिती भरा!"); return;
         }
 
-        const visitData = { schoolName, visitDate, travelDistance, prevVisits, currentVisit, visitType, visitDetails, status };
         let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
-        const btn = document.getElementById('mainSubmitBtn');
 
         if (editingIndex > -1) {
-            data[editingIndex] = visitData;
+            // एडिट करताना जुनी माहिती अपडेट करा
+            data[editingIndex].schoolName = schoolName;
+            data[editingIndex].visitDate = visitDate;
+            data[editingIndex].travelDistance = travelDistance;
+            data[editingIndex].visitType = visitType;
+            data[editingIndex].visitDetails = visitDetails;
             editingIndex = -1; 
+            
+            const btn = document.getElementById('mainSubmitBtn');
             btn.innerHTML = "➕ माहिती जोडा (Add)";
             btn.style.backgroundColor = "#27ae60"; 
             alert("✅ माहिती यशस्वीरीत्या अपडेट केली!");
@@ -950,11 +999,14 @@
             if (schoolName !== "Sunday/रविवार") {
                 data = data.filter(item => !(item.visitDate === visitDate && item.schoolName === "Sunday/रविवार"));
             }
-            data.push(visitData);
+            // नवीन एन्ट्री पुश करा
+            data.push({ schoolName, visitDate, travelDistance, prevVisits: "0", currentVisit: "0", visitType, visitDetails, status });
             alert("✅ माहिती यशस्वीरीत्या जोडली!");
         }
 
-        data.sort((a, b) => a.visitDate.localeCompare(b.visitDate));
+        // येथे सर्व नोंदींचे क्रमांक आपोआप पुन्हा योग्य क्रमाने कॅल्क्युलेट केले जातील
+        data = recalculateAllVisits(data);
+        data = autoInsertSundays(data);
 
         localStorage.setItem("schoolVisitsData", JSON.stringify(data));
         saveDataToGoogleSheet(data);
@@ -1039,9 +1091,11 @@
         if(confirm("तुम्ही ही नोंद कायमची काढून टाकणार आहात का?")) {
             let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
             data.splice(index, 1); 
-            data.sort((a, b) => a.visitDate.localeCompare(b.visitDate));
-            localStorage.setItem("schoolVisitsData", JSON.stringify(data));
             
+            // डेटा डिलीट केल्यावर बाकीच्या सर्व नोंदींचे क्रमांक पुन्हा व्यवस्थित करा
+            data = recalculateAllVisits(data);
+
+            localStorage.setItem("schoolVisitsData", JSON.stringify(data));
             saveDataToGoogleSheet(data);
 
             if (editingIndex === index) {
@@ -1105,6 +1159,7 @@
     function updateUI() {
         let data = JSON.parse(localStorage.getItem("schoolVisitsData") || "[]");
         
+        data = recalculateAllVisits(data);
         data = autoInsertSundays(data);
         data.sort((a, b) => a.visitDate.localeCompare(b.visitDate));
         
